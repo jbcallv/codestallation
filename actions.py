@@ -1,6 +1,8 @@
 import re
+from typing import List
 from metagpt.actions import Action
 from metagpt.logs import logger
+from metagpt.schema import Message
 
 class SummarizeCode(Action):
     PROMPT_TEMPLATE: str = """
@@ -17,7 +19,7 @@ class SummarizeCode(Action):
         code_text = SummarizeCode.get_code_text(code_file)
 
         prompt = self.PROMPT_TEMPLATE.format(code_text=code_text)
-        rsp = await self._aask(prompt)
+        rsp = "This is your code summary" #await self._aask(prompt)
 
         return code_text, rsp
 
@@ -38,18 +40,16 @@ class SummarizeCode(Action):
 
 class ReviewCodeSummary(Action):
     PROMPT_TEMPLATE: str = """
-    Given this code: {code}, evaluate the accuracy of the corresponding code summary {summary} in writing.
+    Given this code: ```{code}```, evaluate the accuracy of the corresponding code summary, '{summary}' in writing.
     Return ```<your_evaluation>``` with NO other texts,
     your evaluation:
     """
 
     name: str = "ReviewCodeSummary"
 
-    async def run(self, summary: str):
-        summary = tuple(summary)
-        logger.info(summary)
-        prompt = self.PROMPT_TEMPLATE.format(code=summary[0], summary=summary[1])
-        rsp = await self._aask(prompt)
+    async def run(self, summary_payload: List[Message]):
+        prompt = self.PROMPT_TEMPLATE.format(code=summary_payload[0].content, summary=summary_payload[1].content)
+        #rsp = await self._aask(prompt)
 
-        return rsp
+        return prompt#rsp
 

@@ -5,7 +5,11 @@ from metagpt.logs import logger
 from actions import SummarizeCode, ReviewCodeSummary
 
 
-# memory updated for each run of the individual agent's role. Not each action 
+# note: memory updated for each run of the individual agent's role. Not each action 
+
+# TODO: implement software parser
+class SoftwareParser(Role):
+    pass
 
 class Summarizer(Role):
     name: str = "Summarizer"
@@ -20,13 +24,20 @@ class Summarizer(Role):
         todo = self.rc.todo
 
         msg = self.get_memories(k=1)[0]  # find the most recent messages
-        code_text = await todo.run(msg.content)
-        logger.info(code_text)
-        msg = Message(content=str(code_text), role=self.profile, cause_by=type(todo), send_to="Reviewer")
+        code_text, code_summary = await todo.run(msg.content)
 
-        self.rc.memory.add(msg)
+        code_msg = Message(content=code_text, role=self.profile, cause_by=type(todo))
+        summary_msg = Message(content=code_summary, role=self.profile, cause_by=type(todo))
 
-        return msg
+        # save memory for future use by summarizer agen
+        self.rc.memory.add(code_msg)
+        self.rc.memory.add(summary_msg)
+
+        # publish message to reviewer role
+        self.rc.env.publish_message(code_msg)
+        self.rc.env.publish_message(summary_msg)
+
+        return code_msg
 
 class Reviewer(Role):
     name: str = "Reviewer"
@@ -35,36 +46,16 @@ class Reviewer(Role):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.set_actions([ReviewCodeSummary])
-        self._watch([Summarizer])
+        self._watch({SummarizeCode})
 
     async def _act(self) -> Message:
         logger.info(f"{self._setting}: to do {self.rc.todo}({self.rc.todo.name})")
         todo = self.rc.todo
 
-        context = self.get_memories(k=1)[0]  # find the most recent memory
+        context = self.get_memories()  # find the most recent memory
         summary_evaluation = await todo.run(context)
         msg = Message(content=summary_evaluation, role=self.profile, cause_by=type(todo))
 
         self.rc.memory.add(msg)
 
         return msg
-
-
-
-
-################# testing code
-if __name__ == "__main__":
-    import asyncio
-
-    from metagpt.context import Context
-
-    async def main():
-        msg = "test" # project directory
-        context = Context()
-        role = Summarizer(context=context)
-        logger.info(msg)
-
-        result = await role.run(msg)
-        logger.info(f"Result: {result}")
-
-    asyncio.run(main())
