@@ -2,6 +2,8 @@ import fire
 import typer
 from metagpt.logs import logger
 from metagpt.team import Team
+from metagpt.roles.di.data_interpreter import DataInterpreter
+from metagpt.tools.libs import repository_parser
 
 from agents import Summarizer, Reviewer
 
@@ -19,6 +21,12 @@ async def main(
     investment: float = 5.0,
     n_round: int = 2
 ):
+
+    # data interpreter for advanced NL -> action understanding
+    test_github_repo = "https://github.com/jbcallv/mixify-me"
+    repo_parser = DataInterpreter(tools=["RepositoryParser"], config=tinyllama)
+    await repo_parser.run(f"Clone the Github repository at the following URL to the projects directory: {test_github_repo}")
+
     team = Team()
     team.hire(
         [

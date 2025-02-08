@@ -4,6 +4,15 @@ from metagpt.actions import Action
 from metagpt.logs import logger
 from metagpt.schema import Message
 
+class CloneRepository(Action):
+    name: str = "CloneRepository"
+
+    # consider using a tool to accomplish this
+    async def run(self, repo_url: str):
+        pass
+
+    
+
 class SummarizeCode(Action):
     PROMPT_TEMPLATE: str = """
     Provide a summary of the code here: {code_text}.
