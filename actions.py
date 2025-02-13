@@ -35,40 +35,73 @@ class SplitProject(Action):
 
 
 class SummarizeCode(Action):
+    name: str = "BuildDependencyGraph"
     PROMPT_TEMPLATE: str = """
     Provide a summary of the code here: {code_text}.
     Return ```<your_summary_here>``` with NO other texts,
     your summary:
     """
 
-    name: str = "SummarizeCode"
+    # currently python only
+    import_keywords: list = ["import"]
 
-    async def run(self, code_file: str):
-        code_text = SummarizeCode.get_code_text(code_file)
-
-        prompt = self.PROMPT_TEMPLATE.format(code_text=code_text)
-        rsp = "This is your code summary" #await self._aask(prompt)
-
-        return code_text, rsp
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.dependency_graph = {}
+        self.summaries = {}
+        self.processing_stack = []
 
     @staticmethod
     def get_code_text(filepath):
         with open(filepath, 'r') as f:
             return f.read()
+            
+    @staticmethod
+    def parse_imports(file):
+        SummarizeCode.get_code_text(file)
+
+        # TODO: parse imports language agnostic
+
+        # temp for testing
+        if "dependency" in file:
+            return []
+        
+        return ["test/dependency.py"]
+
+        
+
+    async def run(self, files):
+        for file in files:
+            dependencies = SummarizeCode.parse_imports(file)
+            self.dependency_graph[file] = dependencies
 
 
-class ReviewCodeSummary(Action):
-    PROMPT_TEMPLATE: str = """
-    Given this code: ```{code}```, evaluate the accuracy of the corresponding code summary, '{summary}' in writing.
-    Return ```<your_evaluation>``` with NO other texts,
-    your evaluation:
-    """
+        print(self.dependency_graph)
+        for file in files:
+            if file not in self.summaries:
+                await self.summarize_file(file)
 
-    name: str = "ReviewCodeSummary"
+        return self.dependency_graph, self.summaries, self.processing_stack
 
-    async def run(self, summary_payload: List[Message]):
-        prompt = self.PROMPT_TEMPLATE.format(code=summary_payload[0].content, summary=summary_payload[1].content)
-        #rsp = await self._aask(prompt)
+    def generate_summary(self, file, dependency_summaries):
+        code_text = self.get_code_text(file)
+        prompt = self.PROMPT_TEMPLATE.format(code_text=code_text)
+        rsp = f"<{file} code summary/prompt>" #await self._aask(prompt)
+        return rsp
 
-        return prompt#rsp
+    async def summarize_file(self, file):
+        if file in self.processing_stack:
+            return # avoid unnecessary cycles
+        
+        self.processing_stack.append(file)
 
+        # handle dependencies before the actual file
+        for dependency in self.dependency_graph[file]:
+            if dependency not in self.summaries:
+                await self.summarize_file(dependency)
+
+        file_dependencies = self.dependency_graph[file]
+        # add await when you send to model
+        summary = self.generate_summary(file, [self.summaries[dep] for dep in file_dependencies])
+        self.summaries[file] = summary
+        self.processing_stack.pop()

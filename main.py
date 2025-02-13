@@ -6,7 +6,7 @@ from metagpt.roles.di.data_interpreter import DataInterpreter
 from metagpt.tools.libs import repository_parser
 from metagpt.strategy.task_type import TaskType
 
-from agents import ProjectSplitter, Summarizer, Reviewer
+from agents import ProjectSplitter, Summarizer
 
 from model_configuration import get_deepseek, get_tinyllama
 
@@ -31,13 +31,12 @@ async def main(
     repo_parser = DataInterpreter(tools=["RepositoryParser"], config=tinyllama)
     await repo_parser.run(f"Clone the Github repository at the following URL to the projects directory: {test_github_repo}")"""
 
-    project_splitter = ProjectSplitter(config=tinyllama, file_extensions=["py", "java"])
+    project_splitter = ProjectSplitter(config=tinyllama, file_extensions=["py"])
     team = Team()
     team.hire(
         [
             project_splitter,
-            Summarizer(config=tinyllama)#,
-            #Reviewer(config=tinyllama),
+            Summarizer(config=tinyllama)
         ]
     )
 
