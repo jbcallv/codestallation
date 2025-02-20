@@ -25,16 +25,18 @@ class ProjectSplitter(Role):
         todo = self.rc.todo
 
         # get the directory containing the code - currently hardcoded; eventually model figures this out
-        directory = self.get_memories(k=1)[0].content
-        code_files = await todo.run(directory, self.file_extensions)
+        root_directory = self.get_memories(k=1)[0].content
+        code_files = await todo.run(root_directory, self.file_extensions)
 
         # can only store messages in memory
         msg_content = ",".join(code_files)
         code_files_msg = Message(content=msg_content, role=self.profile, cause_by=type(todo))
+        project_root_msg = Message(content=root_directory, role=self.profile, cause_by=type(todo))
 
         self.rc.memory.add(code_files_msg)
         self.rc.env.publish_message(code_files_msg)
-
+        self.rc.env.publish_message(project_root_msg)
+        
         return code_files_msg
 
 
@@ -51,22 +53,26 @@ class Summarizer(Role):
         # TODO: add to shared memory pool later? Or during construction...
         self.dependency_graph = {}
         self.summaries = {}
-        self.processing_stack = []
 
     async def _act(self) -> Message:
         logger.info(f"{self._setting}: to do {self.rc.todo}({self.rc.todo.name})")
         todo = self.rc.todo
 
         # should get the code files relevant for summarization
-        files_msg = self.get_memories(k=1)[0]  # find the most recent messages
+        message_queue = self.get_memories(k=2)
+
+        files_msg = message_queue[0]
+
+        project_root = message_queue[1].content
         code_files = files_msg.content.split(",")
+        print(project_root)
 
         # should return a dictionary: pass
-        self.dependency_graph, self.summaries, self.processing_stack = await todo.run(code_files)
+        self.dependency_graph, self.summaries = await todo.run(code_files, project_root)
         print()
-        print(self.dependency_graph)
-        print(self.summaries)
-        print(self.processing_stack)
+        for key, value in self.summaries.items():
+            print(value)
+        
         print()
 
         #code_msg = Message(content=code_text, role=self.profile, cause_by=type(todo))

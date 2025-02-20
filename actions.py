@@ -56,24 +56,25 @@ class SummarizeCode(Action):
             return f.read()
             
     @staticmethod
-    def parse_imports(file):
+    def parse_imports(file, project_root):
         dependency_finder = DependencyParser()
-        deps = dependency_finder.find_dependencies(file, "test")
+        deps = dependency_finder.find_dependencies(file, project_root)
         
         return deps
 
-    async def run(self, files):
+    async def run(self, files, project_root):
         for file in files:
-            dependencies = SummarizeCode.parse_imports(file)
+            dependencies = SummarizeCode.parse_imports(file, project_root)
             self.dependency_graph[file] = dependencies
 
         for file in files:
             if file not in self.summaries:
                 await self.summarize_file(file)
 
-        return self.dependency_graph, self.summaries, self.processing_stack
+        return self.dependency_graph, self.summaries
 
     def generate_summary(self, file, dependency_summaries):
+        print(file, len(dependency_summaries), dependency_summaries[0:3])
         code_text = self.get_code_text(file)
         prompt = self.PROMPT_TEMPLATE.format(code_text=code_text)
         rsp = f"<{file} code summary/prompt>" #await self._aask(prompt)
@@ -91,7 +92,8 @@ class SummarizeCode(Action):
                 await self.summarize_file(dependency)
 
         file_dependencies = self.dependency_graph[file]
+
         # add await when you send to model
-        summary = self.generate_summary(file, [self.summaries[dep] for dep in file_dependencies])
+        summary = self.generate_summary(file, [self.summaries[dep] for dep in file_dependencies if dep in self.summaries])
         self.summaries[file] = summary
         self.processing_stack.pop()
