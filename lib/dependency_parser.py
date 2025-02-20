@@ -1,39 +1,13 @@
-from tree_sitter import Language, Parser
-#from tree_sitter_languages import get_language, get_parser
-from tree_sitter_languages.core import get_language as get_lang
-from tree_sitter_languages.core import get_parser as get_pars
+import sys
+from abc import ABC, abstractmethod
+from tree_sitter_languages.core import get_language
+from tree_sitter_languages.core import get_parser
 import os
-from typing import List, Dict, Optional
 
-class DependencyFinder:
-    def __init__(self, language_options):
-        """
-        Initialize the DependencyFinder with path to tree-sitter language definitions.
-        
-        Args:
-            language_dir: Directory containing tree-sitter language .so files
-        """
-        self.languages: Dict[str, Language] = {}
-        self.parsers: Dict[str, Parser] = {}
-
-        for lang_name in language_options:
-            self.languages[lang_name] = get_lang(lang_name)
-            self.parsers[lang_name] = get_pars(lang_name)
-
-        print(self.languages, self.parsers)
-
-    def detect_language(self, file_path: str) -> Optional[str]:
-        """
-        Detect the programming language based on file extension.
-        
-        Args:
-            file_path: Path to the source code file
-            
-        Returns:
-            Language name if detected, None otherwise
-        """
-        ext_to_lang = {
-            '.py': 'python',
+class DependencyParser:
+    def __init__(self):
+        self._parsers = {
+            '.py': PythonParser(),
             '.js': 'javascript',
             '.ts': 'typescript',
             '.java': 'java',
@@ -43,66 +17,74 @@ class DependencyFinder:
             '.go': 'go',
             '.rs': 'rust'
         }
-        
-        ext = os.path.splitext(file_path)[1].lower()
-        return ext_to_lang.get(ext)
 
-    def find_dependencies(self, file_path: str) -> List[str]:
-        """
-        Find all imported/referenced dependencies in the given file.
-        
-        Args:
-            file_path: Path to the source code file
-            
-        Returns:
-            List of dependency names/paths found
-        """
-        # Detect language
-        lang = self.detect_language(file_path)
-        if not lang or lang not in self.parsers:
-            raise ValueError(f"Unsupported language for file: {file_path}")
+    def find_dependencies(self, file_path, project_root):
+        extension = os.path.splitext(file_path)[1].lower()
 
-        # Read file content
-        with open(file_path, 'r') as f:
-            content = f.read()
+        if extension not in self._parsers:
+            raise TypeError(f"Unsupported file type: {extension}")
+
+        return self._parsers[extension].parse_dependencies(file_path, project_root)
+
+
+class LanguageParser(ABC):
+    def __init__(self):
+        self.language = None
+        self.parser = None
+        self._initialize_parser()
+    
+    @abstractmethod
+    def _initialize_parser(self):
+        pass
+    
+    @abstractmethod
+    def parse_dependencies(self, file_path, project_root):
+        pass
+
+
+class PythonParser(LanguageParser):
+    def _initialize_parser(self):
+        self.language = get_language("python")
+        self.parser = get_parser("python")
+
+    def parse_dependencies(self, file_path, project_root):
+        with open(file_path) as f:
+            tree = self.parser.parse(bytes(f.read(), "utf8"))
             
-        # Parse the file
-        tree = self.parsers[lang].parse(bytes(content, 'utf8'))
+        query_string = """
+            (import_statement 
+                (dotted_name) @import)
+            (import_from_statement
+                module_name: (dotted_name) @from_import)
+        """
+        query = self.language.query(query_string)
         
-        # Find import/require nodes based on language
         dependencies = []
-        
-        def visit_node(node):
-            # Common import patterns across languages
-            if node.type in ('import_statement', 'import_from_statement',  # Python
-                           'import_declaration', 'require_call',           # JavaScript/TypeScript
-                           'use_declaration', 'include_statement',         # Rust/C++
-                           'package_clause', 'import_spec'):              # Go
-                
-                # Extract the imported module/package name
-                for child in node.children:
-                    print(child.text, child.type)
-                    if child.type in ('string', 'identifier', 'string_literal', 'dotted_name'):
-                        print("here", child.type)
-                        dep = content[child.start_byte:child.end_byte].strip('"\'')
-                        if dep not in dependencies:
-                            dependencies.append(dep)
+        captures = query.captures(tree.root_node)
+        for capture in captures:
+            node = capture[0]  # capture is a tuple of (node, capture_name)
+            import_path = node.text.decode('utf8')
             
-            # Recursively visit child nodes
-            for child in node.children:
-                visit_node(child)
-                
-        visit_node(tree.root_node)
-        return dependencies
+            # remove base modules
+            if import_path in sys.stdlib_module_names:
+                continue
+
+            # check if it's actually a file in the project
+            potential_dependency = os.path.join(project_root, import_path.replace('.', '/')) + '.py'
+
+            if os.path.exists(potential_dependency):
+                dependencies.append(potential_dependency)
+            
+        # deduplicate with set
+        return list(set(dependencies))
+
 
 def main():
-    # Example usage
-    language_options = ["python", "java"]
-    finder = DependencyFinder(language_options)
+    finder = DependencyParser()
     
-    # Find dependencies in a Python file
-    deps = finder.find_dependencies('../test/script.py')
+    deps = finder.find_dependencies('../test/script.py', '../test')
     print(f"Dependencies found: {deps}")
+
 
 if __name__ == '__main__':
     main()

@@ -1,0 +1,1 @@
+def times(a, b): return b * a

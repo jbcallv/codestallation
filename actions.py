@@ -4,6 +4,8 @@ from metagpt.actions import Action
 from metagpt.logs import logger
 from metagpt.schema import Message
 
+from lib.dependency_parser import DependencyParser
+
 class CloneRepository(Action):
     name: str = "CloneRepository"
 
@@ -42,9 +44,6 @@ class SummarizeCode(Action):
     your summary:
     """
 
-    # currently python only
-    import_keywords: list = ["import"]
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.dependency_graph = {}
@@ -58,25 +57,16 @@ class SummarizeCode(Action):
             
     @staticmethod
     def parse_imports(file):
-        SummarizeCode.get_code_text(file)
-
-        # TODO: parse imports language agnostic
-
-        # temp for testing
-        if "dependency" in file:
-            return []
+        dependency_finder = DependencyParser()
+        deps = dependency_finder.find_dependencies(file, "test")
         
-        return ["test/dependency.py"]
-
-        
+        return deps
 
     async def run(self, files):
         for file in files:
             dependencies = SummarizeCode.parse_imports(file)
             self.dependency_graph[file] = dependencies
 
-
-        print(self.dependency_graph)
         for file in files:
             if file not in self.summaries:
                 await self.summarize_file(file)
