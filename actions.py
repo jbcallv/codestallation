@@ -49,6 +49,8 @@ class SummarizeCode(Action):
         self.dependency_graph = {}
         self.summaries = {}
         self.processing_stack = []
+        self.CHUNK_SIZE = 100
+        self.CHUNK_OVERLAP = 30
 
     @staticmethod
     def get_code_text(filepath):
@@ -74,11 +76,48 @@ class SummarizeCode(Action):
         return self.dependency_graph, self.summaries
 
     def generate_summary(self, file, dependency_summaries):
-        print(file, len(dependency_summaries), dependency_summaries[0:3])
         code_text = self.get_code_text(file)
+
+        # this is where we get the whole file for summarization
+        chunks = self.create_chunks(file)
+        print(chunks[-1])
+
+
         prompt = self.PROMPT_TEMPLATE.format(code_text=code_text)
         rsp = f"<{file} code summary/prompt>" #await self._aask(prompt)
+        self.save_summary()
         return rsp
+
+    def save_summary(self):
+        # save summary to a db somewhere
+        pass
+
+    def create_chunks(self, file):
+        chunks = []
+        content = self.get_code_text(file)
+
+        lines = content.split('\n')
+        current_pos = 0
+
+        while current_pos < len(lines):
+            chunk_end = min(current_pos + self.CHUNK_SIZE, len(lines))
+            chunk_content = '\n'.join(lines[current_pos:chunk_end])
+
+            chunk = {
+                'content': chunk_content,
+                'chunk_number': len(chunks) + 1,
+                'start_line': current_pos + 1,
+                'end_line': chunk_end,
+            }
+
+            chunks.append(chunk)
+
+            if chunk_end >= len(lines):
+                break
+
+            current_pos = chunk_end - self.CHUNK_OVERLAP
+
+        return chunks
 
     async def summarize_file(self, file):
         if file in self.processing_stack:
