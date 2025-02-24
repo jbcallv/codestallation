@@ -18,7 +18,7 @@ app = typer.Typer()
 
 @app.command()
 async def main(
-    idea: str = "../MetaGPT/metagpt", # configured to be the directory with the source code
+    idea: str = "../metagpt/metagpt", # configured to be the directory with the source code
     investment: float = 5.0,
     n_round: int = 2
 ):
