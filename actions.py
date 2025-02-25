@@ -39,8 +39,22 @@ class SplitProject(Action):
 class SummarizeCode(Action):
     name: str = "BuildDependencyGraph"
     PROMPT_TEMPLATE: str = """
-    Provide a summary of the code here: {code_text}.
-    Return ```<your_summary_here>``` with NO other texts,
+    Provide a summary of the code chunk here: {code_text}. Relevant 
+    dependency summary information is provided for context. Use it as necessary:
+
+    {dependency_summaries}
+
+    Return <your_summary_here> with NO other texts. Your summary 
+    should be no longer than 3 sentences.
+    your summary:
+    """
+
+    COMBINE_SUMMARIES_PROMPT: str = """
+    Provide a single summary that captures all important
+    information from the following list of code summaries:
+    {summaries}
+    Return <your_summary_here> with NO other texts. Your summary
+    should be no longer than 4 sentences.
     your summary:
     """
 
@@ -75,16 +89,25 @@ class SummarizeCode(Action):
 
         return self.dependency_graph, self.summaries
 
-    def generate_summary(self, file, dependency_summaries):
+    async def generate_summary(self, file, dependency_summaries):
         code_text = self.get_code_text(file)
 
         # this is where we get the whole file for summarization
         chunks = self.create_chunks(file)
-        print(chunks[-1])
+
+        dependency_summaries = "\n".join(dependency_summaries)
+        for chunk in chunks:
+            prompt = self.PROMPT_TEMPLATE.format(code_text=chunk["content"], dependency_summaries=dependency_summaries)
+            rsp = await self._aask(prompt)
+            chunk["summary"] = rsp
 
 
-        prompt = self.PROMPT_TEMPLATE.format(code_text=code_text)
-        rsp = f"<{file} code summary/prompt>" #await self._aask(prompt)
+        # summarize whole file
+        summaries = "\n".join([chunk["summary"] for chunk in chunks])
+        prompt = self.COMBINE_SUMMARIES_PROMPT.format(summaries=summaries)
+        rsp = await self._aask(prompt)
+
+        # in db for tracking
         self.save_summary()
         return rsp
 
@@ -108,6 +131,7 @@ class SummarizeCode(Action):
                 'chunk_number': len(chunks) + 1,
                 'start_line': current_pos + 1,
                 'end_line': chunk_end,
+                'summary': "",
             }
 
             chunks.append(chunk)
@@ -133,6 +157,6 @@ class SummarizeCode(Action):
         file_dependencies = self.dependency_graph[file]
 
         # add await when you send to model
-        summary = self.generate_summary(file, [self.summaries[dep] for dep in file_dependencies if dep in self.summaries])
+        summary = await self.generate_summary(file, [self.summaries[dep] for dep in file_dependencies if dep in self.summaries])
         self.summaries[file] = summary
         self.processing_stack.pop()

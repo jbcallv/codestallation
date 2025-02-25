@@ -71,10 +71,9 @@ class Summarizer(Role):
         self.dependency_graph, self.summaries = await todo.run(code_files, project_root)
         print()
         for key, value in self.summaries.items():
-            print(value)
+            print(key, "====>", value)
+            print()
         
-        print()
-
         #code_msg = Message(content=code_text, role=self.profile, cause_by=type(todo))
         #summary_msg = Message(content=code_summary, role=self.profile, cause_by=type(todo))
 
@@ -89,3 +88,30 @@ class Summarizer(Role):
         #self.rc.env.publish_message(summary_msg)
 
         #return code_msg
+
+
+# vector db storage
+class SummaryKeeper(Role):
+    name: str = "SummaryKeeper"
+    profile: str = "SummaryKeeper"
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.set_actions([])
+        self._watch({SummarizeCode})
+
+    async def _act(self) -> Message:
+        logger.info(f"{self._setting}: to do {self.rc.todo}({self.rc.todo.name})")
+        todo = self.rc.todo
+
+        # should get the code files relevant for summarization
+        message_queue = self.get_memories(k=1)[0]
+        print(message_queue)
+
+        # should return a dictionary: pass
+        self.dependency_graph, self.summaries = await todo.run(code_files, project_root)
+        print()
+        for key, value in self.summaries.items():
+            print(key, "====>", value)
+            print()
+
