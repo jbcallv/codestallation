@@ -6,7 +6,7 @@ from metagpt.roles.di.data_interpreter import DataInterpreter
 from metagpt.tools.libs import repository_parser
 from metagpt.strategy.task_type import TaskType
 
-from agents import ProjectSplitter, Summarizer
+from agents import ProjectSplitter, Summarizer, SummaryKeeper
 
 from model_configuration import get_deepseek, get_tinyllama
 
@@ -36,7 +36,8 @@ async def main(
     team.hire(
         [
             project_splitter,
-            Summarizer(config=tinyllama)
+            Summarizer(config=tinyllama),
+            SummaryKeeper()
         ]
     )
 

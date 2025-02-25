@@ -247,3 +247,4 @@ wrapt==1.15.0
 yarl==1.18.3
 zhipuai==2.1.5.20250106
 zipp==3.21.0
+pinecone

@@ -2,7 +2,7 @@ from metagpt.roles import Role
 from metagpt.schema import Message
 from metagpt.logs import logger
 
-from actions import SplitProject, SummarizeCode
+from actions import SplitProject, SummarizeCode, ProcessSummaries
 
 
 # note: memory updated for each run of the individual agent's role. Not each action 
@@ -73,7 +73,10 @@ class Summarizer(Role):
         for key, value in self.summaries.items():
             print(key, "====>", value)
             print()
+            break
         
+        summaries_msg = Message(content="summaries", role=self.profile, cause_by=type(todo), metadata=self.summaries)
+        print(summaries_msg)
         #code_msg = Message(content=code_text, role=self.profile, cause_by=type(todo))
         #summary_msg = Message(content=code_summary, role=self.profile, cause_by=type(todo))
 
@@ -97,21 +100,18 @@ class SummaryKeeper(Role):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.set_actions([])
+        self.set_actions([ProcessSummaries])
         self._watch({SummarizeCode})
 
     async def _act(self) -> Message:
         logger.info(f"{self._setting}: to do {self.rc.todo}({self.rc.todo.name})")
         todo = self.rc.todo
 
-        # should get the code files relevant for summarization
+        # should get the summaries
         message_queue = self.get_memories(k=1)[0]
         print(message_queue)
 
         # should return a dictionary: pass
-        self.dependency_graph, self.summaries = await todo.run(code_files, project_root)
-        print()
-        for key, value in self.summaries.items():
-            print(key, "====>", value)
-            print()
+        thing = await todo.run(message_queue.metadata)
+        print(thing)
 

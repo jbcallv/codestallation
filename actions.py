@@ -3,6 +3,7 @@ from typing import List
 from metagpt.actions import Action
 from metagpt.logs import logger
 from metagpt.schema import Message
+from pinecone import Pinecone
 
 from lib.dependency_parser import DependencyParser
 
@@ -48,6 +49,7 @@ class SummarizeCode(Action):
     should be no longer than 3 sentences.
     your summary:
     """
+
 
     COMBINE_SUMMARIES_PROMPT: str = """
     Provide a single summary that captures all important
@@ -160,3 +162,31 @@ class SummarizeCode(Action):
         summary = await self.generate_summary(file, [self.summaries[dep] for dep in file_dependencies if dep in self.summaries])
         self.summaries[file] = summary
         self.processing_stack.pop()
+
+
+class ProcessSummaries(Action):
+    name: str = "ProcessSummaries"
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+        self.pc = Pinecone(api_key="pcsk_xn2YX_PrADNhizLCFVwYRrxx6Z488j1PLGKuXADxit5LGTHEbjnK97xrQRBiDt6SdT5JS")
+        self.index = self.pc.Index("codestallation")
+
+    # consider using a tool to accomplish this
+    async def run(self, summaries):
+        pc = Pinecone(api_key="pcsk_xn2YX_PrADNhizLCFVwYRrxx6Z488j1PLGKuXADxit5LGTHEbjnK97xrQRBiDt6SdT5JS")
+        index = pc.Index("codestallation")
+
+        vectors_to_upsert = self.generate_vectors(summaries)
+
+        return vectors_to_upsert
+
+    def generate_vectors(self, summaries):
+        for file_path, summary in summaries.items():
+            response = self.pc.inference.embed(
+                model="llama-text-embed-v2",
+                inputs=[summary]
+            )
+            print(response)
+            return response
