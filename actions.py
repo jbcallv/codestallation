@@ -175,18 +175,28 @@ class ProcessSummaries(Action):
 
     # consider using a tool to accomplish this
     async def run(self, summaries):
-        pc = Pinecone(api_key="pcsk_xn2YX_PrADNhizLCFVwYRrxx6Z488j1PLGKuXADxit5LGTHEbjnK97xrQRBiDt6SdT5JS")
-        index = pc.Index("codestallation")
-
-        vectors_to_upsert = self.generate_vectors(summaries)
-
-        return vectors_to_upsert
+        records = self.generate_vectors(summaries)
+        return records
 
     def generate_vectors(self, summaries):
-        for file_path, summary in summaries.items():
-            response = self.pc.inference.embed(
-                model="llama-text-embed-v2",
-                inputs=[summary]
-            )
-            print(response)
-            return response
+        embeddings = self.pc.inference.embed(
+            model="llama-text-embed-v2",
+            inputs=[summary for file_path, summary in summaries.items()],
+            parameters={"input_type": "passage"}
+        )
+
+
+        records = []
+        for (file_path, summary), embedding in zip(summaries.items(), embeddings):
+            records.append({
+                "id": file_path,
+                "values": embedding["values"],
+                "metadata": {"text": summary}
+            })
+
+        self.index.upsert(
+            vectors=records,
+            namespace="test"
+        )
+
+        return records

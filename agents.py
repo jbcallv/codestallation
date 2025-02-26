@@ -65,18 +65,13 @@ class Summarizer(Role):
 
         project_root = message_queue[1].content
         code_files = files_msg.content.split(",")
-        print(project_root)
 
         # should return a dictionary: pass
         self.dependency_graph, self.summaries = await todo.run(code_files, project_root)
-        print()
-        for key, value in self.summaries.items():
-            print(key, "====>", value)
-            print()
-            break
         
         summaries_msg = Message(content="summaries", role=self.profile, cause_by=type(todo), metadata=self.summaries)
-        print(summaries_msg)
+
+        self.rc.env.publish_message(summaries_msg)
         #code_msg = Message(content=code_text, role=self.profile, cause_by=type(todo))
         #summary_msg = Message(content=code_summary, role=self.profile, cause_by=type(todo))
 
@@ -109,9 +104,7 @@ class SummaryKeeper(Role):
 
         # should get the summaries
         message_queue = self.get_memories(k=1)[0]
-        print(message_queue)
 
         # should return a dictionary: pass
         thing = await todo.run(message_queue.metadata)
-        print(thing)
 
