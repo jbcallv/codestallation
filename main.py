@@ -37,7 +37,7 @@ async def main(
         [
             project_splitter,
             Summarizer(config=tinyllama),
-            SummaryKeeper()
+            #SummaryKeeper()
         ]
     )
 

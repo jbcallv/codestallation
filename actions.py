@@ -65,8 +65,8 @@ class SummarizeCode(Action):
         self.dependency_graph = {}
         self.summaries = {}
         self.processing_stack = []
-        self.CHUNK_SIZE = 100
-        self.CHUNK_OVERLAP = 30
+        self.CHUNK_SIZE = 500
+        self.CHUNK_OVERLAP = 50
 
     @staticmethod
     def get_code_text(filepath):
@@ -120,13 +120,13 @@ class SummarizeCode(Action):
     def create_chunks(self, file):
         chunks = []
         content = self.get_code_text(file)
+        tokens = self._tokenize(content)
 
-        lines = content.split('\n')
         current_pos = 0
 
-        while current_pos < len(lines):
-            chunk_end = min(current_pos + self.CHUNK_SIZE, len(lines))
-            chunk_content = '\n'.join(lines[current_pos:chunk_end])
+        while current_pos < len(tokens):
+            chunk_end = min(current_pos + self.CHUNK_SIZE, len(tokens))
+            chunk_content = self._detokenize(tokens[current_pos:chunk_end])
 
             chunk = {
                 'content': chunk_content,
@@ -138,7 +138,7 @@ class SummarizeCode(Action):
 
             chunks.append(chunk)
 
-            if chunk_end >= len(lines):
+            if chunk_end >= len(tokens):
                 break
 
             current_pos = chunk_end - self.CHUNK_OVERLAP
