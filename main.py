@@ -8,17 +8,17 @@ from metagpt.strategy.task_type import TaskType
 
 from agents import ProjectSplitter, Summarizer, SummaryKeeper
 
-from model_configuration import get_deepseek, get_tinyllama
+from model_configuration import get_tinyllama, get_codet5
 
 ## for customizing LLMs for each agent: https://docs.deepwisdom.ai/main/en/guide/tutorials/customize_llms_for_roles_or_actions.html
-#deepseek = get_deepseek()
 tinyllama = get_tinyllama()
+codet5 = get_codet5()
 
 app = typer.Typer()
 
 @app.command()
 async def main(
-    idea: str = "test", # configured to be the directory with the source code
+    idea: str = "../metagpt", # configured to be the directory with the source code
     investment: float = 5.0,
     n_round: int = 2
 ):
@@ -36,7 +36,7 @@ async def main(
     team.hire(
         [
             project_splitter,
-            Summarizer(config=tinyllama),
+            Summarizer(config=codet5),
             #SummaryKeeper()
         ]
     )

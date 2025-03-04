@@ -1,4 +1,5 @@
 import os
+import sys
 from typing import List
 from metagpt.actions import Action
 from metagpt.logs import logger
@@ -40,23 +41,29 @@ class SplitProject(Action):
 class SummarizeCode(Action):
     name: str = "BuildDependencyGraph"
     PROMPT_TEMPLATE: str = """
-    Provide a summary of the code chunk here: {code_text}. Relevant 
-    dependency summary information is provided for context. Use it as necessary:
+    Provide a natural language summary of the code chunk here: {code_text}. 
+
+    Relevant dependency summary information is provided for context here. Use it as necessary:
 
     {dependency_summaries}
 
-    Return <your_summary_here> with NO other texts. Your summary 
+    Return [your_summary_here] with NO other texts. Your summary 
     should be no longer than 3 sentences.
-    your summary:
+
+    Your summary:
+
     """
 
 
     COMBINE_SUMMARIES_PROMPT: str = """
-    Provide a single summary that captures all important
+    Provide a single natural language summary that captures all important
     information from the following list of code summaries:
+
     {summaries}
-    Return <your_summary_here> with NO other texts. Your summary
+
+    Return [your_summary_here] with NO other texts. Your summary
     should be no longer than 4 sentences.
+
     your summary:
     """
 
@@ -65,8 +72,13 @@ class SummarizeCode(Action):
         self.dependency_graph = {}
         self.summaries = {}
         self.processing_stack = []
-        self.CHUNK_SIZE = 500
+
+        # should be based on model ability
+        self.CHUNK_SIZE = 1200
         self.CHUNK_OVERLAP = 50
+
+        self.pc = Pinecone(api_key="pcsk_xn2YX_PrADNhizLCFVwYRrxx6Z488j1PLGKuXADxit5LGTHEbjnK97xrQRBiDt6SdT5JS")
+        self.index = self.pc.Index("codestallation")
 
     @staticmethod
     def get_code_text(filepath):
@@ -92,30 +104,59 @@ class SummarizeCode(Action):
         return self.dependency_graph, self.summaries
 
     async def generate_summary(self, file, dependency_summaries):
+        print("Generating summary for file:", file, "="*30)
+        print()
         code_text = self.get_code_text(file)
 
         # this is where we get the whole file for summarization
         chunks = self.create_chunks(file)
 
         dependency_summaries = "\n".join(dependency_summaries)
+        print("Chunk summaries", "*"*30)
         for chunk in chunks:
             prompt = self.PROMPT_TEMPLATE.format(code_text=chunk["content"], dependency_summaries=dependency_summaries)
+            print()
             rsp = await self._aask(prompt)
+            print(rsp)
             chunk["summary"] = rsp
+        print("End chunk summaries", "*"*30)
 
 
         # summarize whole file
         summaries = "\n".join([chunk["summary"] for chunk in chunks])
         prompt = self.COMBINE_SUMMARIES_PROMPT.format(summaries=summaries)
+
+        print()
+        print("File summary", "@"*30)
+
         rsp = await self._aask(prompt)
+        print(rsp)
 
         # in db for tracking
-        self.save_summary()
+        self.save_summary(file, rsp)
+
+        print("End file summary", "="*30)
         return rsp
 
-    def save_summary(self):
+    def save_summary(self, file_id, summary):
         # save summary to a db somewhere
-        pass
+        embeddings = self.pc.inference.embed(
+            model="llama-text-embed-v2",
+            inputs=[summary if summary.strip() else "no summary was produced by the model"],
+            parameters={"input_type": "passage"}
+        )
+
+
+        record = [{
+            "id": file_id,
+            "values": embeddings[0]["values"], # only doing one at a time
+            "metadata": {"text": summary}
+        }]
+
+        self.index.upsert(
+            vectors=record,
+            namespace="test"
+        )
 
     def create_chunks(self, file):
         chunks = []
