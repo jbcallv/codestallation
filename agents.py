@@ -201,12 +201,6 @@ class ChunkSummaryCombiner(Role):
             metadata={"file_summaries": self.file_summaries}
         )
 
-        for key, value in self.file_summaries.items():
-            print(key)
-            print(value)
-            print()
-            print()
-        
         self.rc.env.publish_message(all_summaries_msg)
         return all_summaries_msg
 
@@ -219,10 +213,6 @@ class FileLevelSummarizer(Role):
         super().__init__(**kwargs)
         self.set_actions([FileSummarizer])
         self._watch({CombineChunkSummaries})
-        
-        #self.pinecone_api_key = kwargs.get("pinecone_api_key", None)
-        #self.pinecone_index = kwargs.get("pinecone_index", "codestallation")
-        #self.pc_namespace = kwargs.get("pc_namespace", "default")
         
         self.final_summaries = {}
     
