@@ -23,6 +23,10 @@ class SplitProject(Action):
         all_files = SplitProject.collect_files(directory)
         filtered_files = SplitProject.filter_by_extensions(all_files, file_extensions)
 
+        if not filtered_files:
+            #TODO: end program or else errors happen
+            print("NO FILES WITH EXTENSION FOUND")
+
         return filtered_files
 
     @staticmethod
@@ -31,6 +35,7 @@ class SplitProject(Action):
         for root, dirs, files in os.walk(directory):
             for file in files:
                 found_files.append(os.path.join(root, file))
+
         return found_files
 
     @staticmethod
@@ -77,6 +82,7 @@ class SummarizeCode(Action):
         self.CHUNK_SIZE = 1200
         self.CHUNK_OVERLAP = 50
 
+        self.pc_namespace = "test"
         self.pc = Pinecone(api_key="pcsk_xn2YX_PrADNhizLCFVwYRrxx6Z488j1PLGKuXADxit5LGTHEbjnK97xrQRBiDt6SdT5JS")
         self.index = self.pc.Index("codestallation")
 
@@ -93,6 +99,8 @@ class SummarizeCode(Action):
         return deps
 
     async def run(self, files, project_root):
+        self.pc_namespace = project_root
+
         for file in files:
             dependencies = SummarizeCode.parse_imports(file, project_root)
             self.dependency_graph[file] = dependencies
@@ -139,6 +147,7 @@ class SummarizeCode(Action):
         return rsp
 
     def save_summary(self, file_id, summary):
+        print(self.pc_namespace)
         # save summary to a db somewhere
         embeddings = self.pc.inference.embed(
             model="llama-text-embed-v2",
@@ -155,7 +164,7 @@ class SummarizeCode(Action):
 
         self.index.upsert(
             vectors=record,
-            namespace="test"
+            namespace=self.pc_namespace
         )
 
     def create_chunks(self, file):

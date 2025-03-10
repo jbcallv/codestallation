@@ -18,7 +18,7 @@ app = typer.Typer()
 
 @app.command()
 async def main(
-    idea: str = "../metagpt", # configured to be the directory with the source code
+    idea: str = "test/java/netchat-java/ChatServer/src", # configured to be the directory with the source code
     investment: float = 5.0,
     n_round: int = 2
 ):
@@ -31,7 +31,7 @@ async def main(
     repo_parser = DataInterpreter(tools=["RepositoryParser"], config=tinyllama)
     await repo_parser.run(f"Clone the Github repository at the following URL to the projects directory: {test_github_repo}")"""
 
-    project_splitter = ProjectSplitter(config=tinyllama, file_extensions=["py"])
+    project_splitter = ProjectSplitter(config=tinyllama, file_extensions=["py", "java"])
     team = Team()
     team.hire(
         [
