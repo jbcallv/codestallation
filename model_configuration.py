@@ -7,8 +7,8 @@ def get_tinyllama():
     tinyllama = Config.from_llm_config(llm_config)
     return tinyllama
 
-def get_codet5():
+def get_phi4():
     llm_config = {"api_type": "codestallation", "model": "microsoft/Phi-4-mini-instruct"}
-    codet5 = Config.from_llm_config(llm_config)
-    return codet5
+    phi4 = Config.from_llm_config(llm_config)
+    return phi4
 

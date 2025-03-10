@@ -5,44 +5,58 @@ from metagpt.team import Team
 from metagpt.roles.di.data_interpreter import DataInterpreter
 from metagpt.tools.libs import repository_parser
 from metagpt.strategy.task_type import TaskType
+from model_configuration import get_phi4
 
-from agents import ProjectSplitter, Summarizer, SummaryKeeper
+from agents import (
+    ProjectSplitter, 
+    DependencyGraphBuilder, 
+    ChunkSummarizer, 
+    ChunkSummaryCombiner, 
+    FileLevelSummarizer
+)
 
-from model_configuration import get_tinyllama, get_codet5
-
-## for customizing LLMs for each agent: https://docs.deepwisdom.ai/main/en/guide/tutorials/customize_llms_for_roles_or_actions.html
-tinyllama = get_tinyllama()
-codet5 = get_codet5()
+phi4_contextual = get_phi4()
 
 app = typer.Typer()
 
 @app.command()
 async def main(
-    idea: str = "test/java/netchat-java/ChatServer/src", # configured to be the directory with the source code
+    idea: str = "../metagpt",  # directory with source code
     investment: float = 5.0,
-    n_round: int = 2
+    n_round: int = 2,
+    pinecone_api_key: str = None,
+    pinecone_index: str = "codestallation",
+    file_extensions: list = ["py", "java"]
 ):
-
-    #for tt in TaskType:
-        #print(tt)
-
-    # data interpreter for advanced NL -> action understanding
-    """test_github_repo = "https://github.com/jbcallv/mixify-me"
-    repo_parser = DataInterpreter(tools=["RepositoryParser"], config=tinyllama)
-    await repo_parser.run(f"Clone the Github repository at the following URL to the projects directory: {test_github_repo}")"""
-
-    project_splitter = ProjectSplitter(config=tinyllama, file_extensions=["py", "java"])
     team = Team()
-    team.hire(
-        [
-            project_splitter,
-            Summarizer(config=codet5),
-            #SummaryKeeper()
-        ]
-    )
-
-    team.run_project(idea, send_to="ProjectSplitter") # initial agent to receive the first instruction
-    await team.run(n_round=10)
+    
+    
+    project_splitter = ProjectSplitter(config=phi4_contextual, file_extensions=file_extensions)
+    dependency_builder = DependencyGraphBuilder(config=phi4_contextual)
+    chunk_summarizer = ChunkSummarizer(config=phi4_contextual)
+    chunk_combiner = ChunkSummaryCombiner(config=phi4_contextual)
+    file_summarizer = FileLevelSummarizer(config=phi4_contextual)
+    
+    team.hire([
+        project_splitter,
+        dependency_builder,
+        chunk_summarizer, 
+        chunk_combiner,
+        file_summarizer
+    ])
+    
+    team.run_project(idea, send_to="ProjectSplitter")
+    
+    # run the team for the specified number of rounds
+    await team.run(n_round=n_round)
+    
+    # print final summaries
+    if hasattr(file_summarizer, 'final_summaries') and file_summarizer.final_summaries:
+        print("\n=== DOCUMENTATION COMPLETE ===\n")
+        for file, summary in file_summarizer.final_summaries.items():
+            print(f"\n--- {file} ---\n")
+            print(summary)
+            print("\n" + "-" * 40)
 
 if __name__ == "__main__":
     fire.Fire(main)
