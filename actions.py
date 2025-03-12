@@ -66,17 +66,25 @@ class BuildDependencyGraph(Action):
 
     def determine_processing_order(self):
         processed = set()
+        in_process = set()
         order = []
 
         def process_file(file):
             if file in processed:
                 return
-            # Process dependencies first
+            if file in in_process:
+                print(f"Warning: circular dependency detected involving {file}")
+                return
+
+
+            in_process.add(file)
+
             for dep in self.dependency_graph.get(file, []):
                 # ensures we only process project files
                 if dep in self.dependency_graph:
                     process_file(dep)
 
+            in_process.remove(file)
             processed.add(file)
             order.append(file)
 
