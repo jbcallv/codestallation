@@ -5,7 +5,7 @@ from metagpt.team import Team
 from metagpt.roles.di.data_interpreter import DataInterpreter
 from metagpt.tools.libs import repository_parser
 from metagpt.strategy.task_type import TaskType
-from model_configuration import get_phi4
+from model_configuration import get_phi4, get_no_model
 
 from agents import (
     ProjectSplitter, 
@@ -16,6 +16,7 @@ from agents import (
 )
 
 phi4_contextual = get_phi4()
+#no_model = get_no_model()
 
 app = typer.Typer()
 

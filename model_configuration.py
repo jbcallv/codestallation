@@ -12,3 +12,8 @@ def get_phi4():
     phi4 = Config.from_llm_config(llm_config)
     return phi4
 
+def get_no_model():
+    config = {"api_type": "", "model": ""}
+    no_model = Config.from_llm_config(config)
+    return no_model
+
