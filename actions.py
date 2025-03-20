@@ -236,15 +236,19 @@ class FileSummarizer(Action):
         self.MAX_RELEVANT_CODE_SECTIONS = 10
         self.FALLBACK_CHARACTER_COUNT = 600
 
-        self.pc_namespace = "default"
-        self.pc = Pinecone(api_key="pcsk_xn2YX_PrADNhizLCFVwYRrxx6Z488j1PLGKuXADxit5LGTHEbjnK97xrQRBiDt6SdT5JS")
-        self.index = self.pc.Index("codestallation")
+        self.init_pinecone()
 
 
     @staticmethod
     def get_code_text(filepath):
         with open(filepath, 'r') as f:
             return f.read()
+
+    def init_pinecone(self):
+        self.pc_namespace = "default"
+        self.pc = Pinecone(api_key="pcsk_xn2YX_PrADNhizLCFVwYRrxx6Z488j1PLGKuXADxit5LGTHEbjnK97xrQRBiDt6SdT5JS")
+        self.index = self.pc.Index("codestallation")
+
 
     def extract_key_code_sections(self, filepath):
         code_text = self.get_code_text(filepath)
@@ -281,6 +285,7 @@ class FileSummarizer(Action):
 
         final_summary = await self._aask(prompt)
 
+        self.init_pinecone() # to avoid poinecone connection timeout
         self.save_summary(file, final_summary)
 
         return final_summary
