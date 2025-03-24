@@ -1,4 +1,7 @@
 from metagpt.config2 import Config
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # for quantized models, simply host on huggingface
 
@@ -12,8 +15,18 @@ def get_phi4():
     phi4 = Config.from_llm_config(llm_config)
     return phi4
 
+def get_claude():
+    llm_config = {
+        "api_type": "claude",
+        "base_url": "https://api.anthropic.com",
+        "api_key": os.getenv("ANTHROPIC_API_KEY"),
+        "model": "claude-3-5-haiku-20241022"
+    }
+
+    haiku = Config.from_llm_config(llm_config)
+    return haiku
+
 def get_no_model():
     config = {"api_type": "codestallation", "model": "no_model"}
     no_model = Config.from_llm_config(config)
     return no_model
-

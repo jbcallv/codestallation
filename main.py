@@ -5,7 +5,7 @@ from metagpt.team import Team
 from metagpt.roles.di.data_interpreter import DataInterpreter
 from metagpt.tools.libs import repository_parser
 from metagpt.strategy.task_type import TaskType
-from model_configuration import get_phi4, get_no_model, get_tinyllama
+from model_configuration import get_claude, get_phi4, get_no_model, get_tinyllama
 
 from agents import (
     ProjectSplitter, 
@@ -15,16 +15,19 @@ from agents import (
     FileLevelSummarizer
 )
 
-phi4_contextual = get_phi4()
+#phi4 = get_phi4()
+c1 = get_claude()
+c2 = get_claude()
+c3 = get_claude()
 no_model = get_no_model()
 
 app = typer.Typer()
 
 @app.command()
 async def main(
-    idea: str = "../metagpt",  # directory with source code
+    idea: str = "test/python",  # directory with source code
     investment: float = 5.0,
-    n_round: int = 2,
+    n_round: int = 5,
     pinecone_api_key: str = None,
     pinecone_index: str = "codestallation",
     file_extensions: list = ["py", "java"]
@@ -34,9 +37,9 @@ async def main(
     
     project_splitter = ProjectSplitter(config=no_model, file_extensions=file_extensions)
     dependency_builder = DependencyGraphBuilder(config=no_model)
-    chunk_summarizer = ChunkSummarizer(config=phi4_contextual)
-    chunk_combiner = ChunkSummaryCombiner(config=phi4_contextual)
-    file_summarizer = FileLevelSummarizer(config=phi4_contextual)
+    chunk_summarizer = ChunkSummarizer(config=c1)
+    chunk_combiner = ChunkSummaryCombiner(config=c2)
+    file_summarizer = FileLevelSummarizer(config=c3)
     
     team.hire([
         project_splitter,
