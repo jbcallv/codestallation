@@ -285,7 +285,6 @@ class FileSummarizer(Action):
 
         final_summary = await self._aask(prompt)
 
-        self.init_pinecone() # to avoid poinecone connection timeout
         self.save_summary(file, final_summary)
 
         return final_summary
@@ -301,6 +300,7 @@ class FileSummarizer(Action):
         return formatted
 
     def save_summary(self, file_id, summary):
+        self.init_pinecone()
         embeddings = self.pc.inference.embed(
             model="llama-text-embed-v2",
             inputs=[summary if summary.strip() else "no summary was produced by the model"],

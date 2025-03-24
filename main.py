@@ -5,7 +5,7 @@ from metagpt.team import Team
 from metagpt.roles.di.data_interpreter import DataInterpreter
 from metagpt.tools.libs import repository_parser
 from metagpt.strategy.task_type import TaskType
-from model_configuration import get_phi4, get_no_model
+from model_configuration import get_phi4, get_no_model, get_tinyllama
 
 from agents import (
     ProjectSplitter, 
@@ -16,7 +16,7 @@ from agents import (
 )
 
 phi4_contextual = get_phi4()
-#no_model = get_no_model()
+no_model = get_no_model()
 
 app = typer.Typer()
 
@@ -32,8 +32,8 @@ async def main(
     team = Team()
     
     
-    project_splitter = ProjectSplitter(config=phi4_contextual, file_extensions=file_extensions)
-    dependency_builder = DependencyGraphBuilder(config=phi4_contextual)
+    project_splitter = ProjectSplitter(config=no_model, file_extensions=file_extensions)
+    dependency_builder = DependencyGraphBuilder(config=no_model)
     chunk_summarizer = ChunkSummarizer(config=phi4_contextual)
     chunk_combiner = ChunkSummaryCombiner(config=phi4_contextual)
     file_summarizer = FileLevelSummarizer(config=phi4_contextual)
