@@ -25,12 +25,12 @@ app = typer.Typer()
 
 @app.command()
 async def main(
-    idea: str = "../metagpt",  # directory with source code
+    idea: str = "test/java/ant",  # directory with source code, ex. "../metagpt"
     investment: float = 5.0,
     n_round: int = 5,
     pinecone_api_key: str = None,
     pinecone_index: str = "codestallation",
-    file_extensions: list = ["py", "java"]
+    file_extensions: list = ["java"] # can add multiple
 ):
     team = Team()
     

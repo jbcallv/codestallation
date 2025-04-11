@@ -247,7 +247,7 @@ class FileSummarizer(Action):
             return f.read()
 
     def init_pinecone(self):
-        self.pc_namespace = "claudetest" #"metagpt"
+        self.pc_namespace = "apache-ant" #"metagpt"
         self.pc = Pinecone(api_key="pcsk_xn2YX_PrADNhizLCFVwYRrxx6Z488j1PLGKuXADxit5LGTHEbjnK97xrQRBiDt6SdT5JS")
         self.index = self.pc.Index("codestallation")
 
