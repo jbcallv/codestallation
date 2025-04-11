@@ -17,6 +17,8 @@ class SplitProject(Action):
         all_files = SplitProject.collect_files(directory)
         filtered_files = SplitProject.filter_by_extensions(all_files, file_extensions)
 
+        print("Total files to summarize:", len(filtered_files))
+
         if not filtered_files:
             print("Error: no relevant project files found.")
             sys.exit(0)
@@ -115,8 +117,8 @@ class SummarizeChunks(Action):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.CHUNK_SIZE = 1200
-        self.CHUNK_OVERLAP = 50
+        self.CHUNK_SIZE = 20000
+        self.CHUNK_OVERLAP = 500
 
     @staticmethod
     def get_code_text(filepath):
@@ -245,7 +247,7 @@ class FileSummarizer(Action):
             return f.read()
 
     def init_pinecone(self):
-        self.pc_namespace = "testproj" #"metagpt"
+        self.pc_namespace = "claudetest" #"metagpt"
         self.pc = Pinecone(api_key="pcsk_xn2YX_PrADNhizLCFVwYRrxx6Z488j1PLGKuXADxit5LGTHEbjnK97xrQRBiDt6SdT5JS")
         self.index = self.pc.Index("codestallation")
 

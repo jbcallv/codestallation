@@ -1,3 +1,4 @@
+import os
 from metagpt.config2 import Config
 from dotenv import load_dotenv
 

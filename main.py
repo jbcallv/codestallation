@@ -25,7 +25,7 @@ app = typer.Typer()
 
 @app.command()
 async def main(
-    idea: str = "test/python",  # directory with source code
+    idea: str = "../metagpt",  # directory with source code
     investment: float = 5.0,
     n_round: int = 5,
     pinecone_api_key: str = None,
