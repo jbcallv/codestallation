@@ -8,6 +8,29 @@ from pinecone import Pinecone
 
 from lib.dependency_parser import DependencyParser
 
+# for api rate limiting
+async def aask_with_backoff(self, prompt, max_retries=5, base_delay=2):
+    for attempt in range(max_retries):
+        try:
+            return await self._aask(prompt)
+        except Exception as e:
+            if "overloaded_error" not in str(e).lower():
+                # raise other exception
+                raise
+            
+            # last attempt on exp backoff
+            if attempt == max_retries - 1:
+                raise
+
+            delay = base_delay * (2 ** attempt)
+
+            # jitter for rl
+            jitter = delay * 0.2 * (random.random() * 2 - 1)
+            wait_time = delay + jitter
+            
+            print(f"Model API overloaded, retrying in {wait_time:.2f} seconds (attempt {attempt+1}/{max_retries})")
+            await asyncio.sleep(wait_time)
+
 # action 1
 class SplitProject(Action):
     name: str = "SplitProject"
@@ -177,7 +200,7 @@ class SummarizeChunks(Action):
             )
             
             # summarize current chunk
-            chunk_summary = await self._aask(prompt)
+            chunk_summary = await aask_with_backoff(self, prompt) #self._aask(prompt)
             chunk["summary"] = chunk_summary
         
         return chunks
@@ -205,7 +228,7 @@ class CombineChunkSummaries(Action):
         
         # generate combined summary
         prompt = self.COMBINE_SUMMARIES_PROMPT.format(summaries=summaries_text)
-        combined_summary = await self._aask(prompt)
+        combined_summary = await aask_with_backoff(self, prompt) #self._aask(prompt)
         
         return combined_summary
 
@@ -247,7 +270,7 @@ class FileSummarizer(Action):
             return f.read()
 
     def init_pinecone(self):
-        self.pc_namespace = "apache-ant" #"metagpt"
+        self.pc_namespace = "apache-ant-rocco" #"metagpt"
         self.pc = Pinecone(api_key="pcsk_xn2YX_PrADNhizLCFVwYRrxx6Z488j1PLGKuXADxit5LGTHEbjnK97xrQRBiDt6SdT5JS")
         self.index = self.pc.Index("codestallation")
 
@@ -285,7 +308,7 @@ class FileSummarizer(Action):
             dependency_context=dependency_context
         )
 
-        final_summary = await self._aask(prompt)
+        final_summary = await aask_with_backoff(self, prompt) #self._aask(prompt)
 
         self.save_summary(file, final_summary)
 
