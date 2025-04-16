@@ -16,8 +16,10 @@ async def aask_with_backoff(self, prompt, max_retries=5, base_delay=2):
         try:
             return await self._aask(prompt)
         except Exception as e:
-            if "overloaded_error" not in str(e).lower() or "RemoteProtocolError" not in str(e):
-                # raise other exception
+            if "overloaded_error" not in str(e).lower(): # raise other exception
+                raise
+
+            if "RemoteProtocolError" not in str(e):
                 raise
             
             # last attempt on exp backoff
