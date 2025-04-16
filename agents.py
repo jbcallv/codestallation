@@ -137,6 +137,7 @@ class ChunkSummarizer(Role):
                 content=f"chunks_{file}", 
                 role=self.profile, 
                 cause_by=type(todo),
+                send_to={"ChunkSummaryCombiner"},
                 metadata={"file": file, "chunks": chunks}
             )
             
@@ -187,6 +188,7 @@ class ChunkSummaryCombiner(Role):
                     content=f"file_summary_{file}", 
                     role=self.profile, 
                     cause_by=type(todo),
+                    send_to={"FileLevelSummarizer"},
                     metadata={"file": file, "summary": file_summary}
                 )
                 

@@ -5,7 +5,7 @@ from metagpt.team import Team
 from metagpt.roles.di.data_interpreter import DataInterpreter
 from metagpt.tools.libs import repository_parser
 from metagpt.strategy.task_type import TaskType
-from model_configuration import get_claude, get_phi4, get_no_model, get_tinyllama
+from model_configuration import get_chatgpt, get_claude, get_phi4, get_no_model, get_tinyllama
 
 from agents import (
     ProjectSplitter, 
@@ -25,7 +25,7 @@ app = typer.Typer()
 
 @app.command()
 async def main(
-    idea: str = "test/java/ant",  # directory with source code, ex. "../metagpt"
+    idea: str = "test/java/jenkins",  # directory with source code, ex. "../metagpt"
     investment: float = 5.0,
     n_round: int = 5,
     pinecone_api_key: str = None,

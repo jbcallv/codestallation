@@ -1,5 +1,7 @@
 import os
 import sys
+import asyncio
+import random
 from typing import List
 from metagpt.actions import Action
 from metagpt.logs import logger
@@ -14,7 +16,7 @@ async def aask_with_backoff(self, prompt, max_retries=5, base_delay=2):
         try:
             return await self._aask(prompt)
         except Exception as e:
-            if "overloaded_error" not in str(e).lower():
+            if "overloaded_error" not in str(e).lower() or "RemoteProtocolError" not in str(e):
                 # raise other exception
                 raise
             
@@ -140,8 +142,8 @@ class SummarizeChunks(Action):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.CHUNK_SIZE = 20000
-        self.CHUNK_OVERLAP = 500
+        self.CHUNK_SIZE = 1000
+        self.CHUNK_OVERLAP = 200
 
     @staticmethod
     def get_code_text(filepath):
@@ -270,7 +272,7 @@ class FileSummarizer(Action):
             return f.read()
 
     def init_pinecone(self):
-        self.pc_namespace = "apache-ant-rocco" #"metagpt"
+        self.pc_namespace = "jenkins-rocco" #"metagpt"
         self.pc = Pinecone(api_key="pcsk_xn2YX_PrADNhizLCFVwYRrxx6Z488j1PLGKuXADxit5LGTHEbjnK97xrQRBiDt6SdT5JS")
         self.index = self.pc.Index("codestallation")
 

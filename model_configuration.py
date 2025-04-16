@@ -27,6 +27,14 @@ def get_claude():
     haiku = Config.from_llm_config(llm_config)
     return haiku
 
+def get_chatgpt():
+    llm_config = {
+        "api_type": "openai",
+        "base_url": "https://api.openai.com/v1",
+        "api_key": "",
+        "model": "gpt-4.1-mini-2025-04-14"# "gpt-4o-mini-2024-07-18" 2048 max input tokens ??
+    }
+
 def get_no_model():
     config = {"api_type": "codestallation", "model": "no_model"}
     no_model = Config.from_llm_config(config)
