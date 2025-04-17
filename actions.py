@@ -11,12 +11,13 @@ from pinecone import Pinecone
 from lib.dependency_parser import DependencyParser
 
 # for api rate limiting
-async def aask_with_backoff(self, prompt, max_retries=5, base_delay=2):
+async def aask_with_backoff(self, prompt, max_retries=10, base_delay=5):
     for attempt in range(max_retries):
         try:
             return await self._aask(prompt)
         except Exception as e:
-            if "overloaded_error" not in str(e).lower() and "RemoteProtocolError" not in str(e): # raise other exception
+            if "overloaded_error" not in str(e).lower() and "RemoteProtocolError" not in str(e) and "closed connection" not in str(e): # raise other exception
+                print("raising this error:", str(e))
                 raise
 
             # last attempt on exp backoff
