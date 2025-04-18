@@ -25,12 +25,12 @@ app = typer.Typer()
 
 @app.command()
 async def main(
-    idea: str = "test/java/jenkins",  # directory with source code, ex. "../metagpt"
+    idea: str = typer.Argument("../MetaGPT", help="Directory with source code to summarize."), #"test/java/jenkins",  # directory with source code, ex. "../metagpt"
     investment: float = 5.0,
     n_round: int = 5,
     pinecone_api_key: str = None,
-    pinecone_index: str = "codestallation",
-    file_extensions: list = ["java"] # can add multiple
+    pinecone_index: str = typer.Option("metagpt", help="Name of Pinecone index to use."),
+    file_extensions: list = typer.Option(["python", "java"], help="File extensions to summarize."), # can add multiple
 ):
     team = Team()
     
@@ -39,7 +39,7 @@ async def main(
     dependency_builder = DependencyGraphBuilder(config=no_model)
     chunk_summarizer = ChunkSummarizer(config=c1)
     chunk_combiner = ChunkSummaryCombiner(config=c2)
-    file_summarizer = FileLevelSummarizer(config=c3)
+    file_summarizer = FileLevelSummarizer(config=c3, pinecone_index=pinecone_index)
     
     team.hire([
         project_splitter,

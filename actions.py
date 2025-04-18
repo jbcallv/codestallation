@@ -263,7 +263,10 @@ class FileSummarizer(Action):
         self.MAX_RELEVANT_CODE_SECTIONS = 10
         self.FALLBACK_CHARACTER_COUNT = 600
 
-        self.init_pinecone()
+        #self.init_pinecone()
+        self.pc_namespace = None
+        self.pc = None
+        self.index = None
 
 
     @staticmethod
@@ -271,8 +274,8 @@ class FileSummarizer(Action):
         with open(filepath, 'r') as f:
             return f.read()
 
-    def init_pinecone(self):
-        self.pc_namespace = "jenkins-rocco" #"metagpt"
+    def init_pinecone(self, pc_index):
+        self.pc_namespace = pc_index # should be namespace, but naming error...
         self.pc = Pinecone(api_key="pcsk_xn2YX_PrADNhizLCFVwYRrxx6Z488j1PLGKuXADxit5LGTHEbjnK97xrQRBiDt6SdT5JS")
         self.index = self.pc.Index("codestallation")
 
@@ -297,7 +300,7 @@ class FileSummarizer(Action):
 
         return "\n\n".join(sections[:self.MAX_RELEVANT_CODE_SECTIONS])
 
-    async def run(self, file, file_summary, dependency_summaries):
+    async def run(self, file, file_summary, dependency_summaries, pc_index):
         # dependency context info
         dependency_context = self.format_dependency_context(dependency_summaries)
 
@@ -312,7 +315,7 @@ class FileSummarizer(Action):
 
         final_summary = await aask_with_backoff(self, prompt) #self._aask(prompt)
 
-        self.save_summary(file, final_summary)
+        self.save_summary(file, final_summary, pc_index)
 
         return final_summary
 
@@ -326,8 +329,8 @@ class FileSummarizer(Action):
 
         return formatted
 
-    def save_summary(self, file_id, summary):
-        self.init_pinecone()
+    def save_summary(self, file_id, summary, pc_index):
+        self.init_pinecone(pc_index)
         embeddings = self.pc.inference.embed(
             model="llama-text-embed-v2",
             inputs=[summary if summary.strip() else "no summary was produced by the model"],

@@ -216,6 +216,7 @@ class FileLevelSummarizer(Role):
         self.set_actions([FileSummarizer])
         self._watch({CombineChunkSummaries})
         
+        self.pc_index = kwargs.get("pinecone_index", "metagpt")
         self.final_summaries = {}
     
     async def _act(self) -> Message:
@@ -250,7 +251,8 @@ class FileLevelSummarizer(Role):
             final_summary = await todo.run(
                 file, 
                 summary, 
-                dependency_summaries
+                dependency_summaries,
+                self.pc_index
             )
             
             self.final_summaries[file] = final_summary
