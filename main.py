@@ -30,11 +30,12 @@ async def main(
     n_round: int = 5,
     pinecone_api_key: str = None,
     pinecone_index: str = typer.Option("metagpt", help="Name of Pinecone index to use."),
-    file_extensions: list = typer.Option(["python", "java"], help="File extensions to summarize."), # can add multiple
+    file_extensions: str = typer.Option("py,java", "--file-extensions", "-f", help="File extensions to summarize."), # can add multiple
 ):
     team = Team()
     
     
+    file_extensions = file_extensions.split(",")
     project_splitter = ProjectSplitter(config=no_model, file_extensions=file_extensions)
     dependency_builder = DependencyGraphBuilder(config=no_model)
     chunk_summarizer = ChunkSummarizer(config=c1)

@@ -16,7 +16,7 @@ async def aask_with_backoff(self, prompt, max_retries=10, base_delay=5):
         try:
             return await self._aask(prompt)
         except Exception as e:
-            if "overloaded_error" not in str(e).lower() and "RemoteProtocolError" not in str(e) and "closed connection" not in str(e): # raise other exception
+            if "overloaded_error" not in str(e).lower() and "RemoteProtocolError" not in str(e) and "closed connection" not in str(e) and "httpx" not in str(e): # raise other exception
                 print("raising this error:", str(e))
                 raise
 
@@ -32,6 +32,7 @@ async def aask_with_backoff(self, prompt, max_retries=10, base_delay=5):
             
             print(f"Model API overloaded, retrying in {wait_time:.2f} seconds (attempt {attempt+1}/{max_retries})")
             await asyncio.sleep(wait_time)
+
 
 # action 1
 class SplitProject(Action):
@@ -142,8 +143,8 @@ class SummarizeChunks(Action):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.CHUNK_SIZE = 1000
-        self.CHUNK_OVERLAP = 200
+        self.CHUNK_SIZE = 20000
+        self.CHUNK_OVERLAP = 1000
 
     @staticmethod
     def get_code_text(filepath):
@@ -315,7 +316,7 @@ class FileSummarizer(Action):
 
         final_summary = await aask_with_backoff(self, prompt) #self._aask(prompt)
 
-        self.save_summary(file, final_summary, pc_index)
+        await self.save_summary(file, final_summary, pc_index)
 
         return final_summary
 
@@ -329,21 +330,41 @@ class FileSummarizer(Action):
 
         return formatted
 
-    def save_summary(self, file_id, summary, pc_index):
+    async def save_summary(self, file_id, summary, pc_index):
         self.init_pinecone(pc_index)
-        embeddings = self.pc.inference.embed(
-            model="llama-text-embed-v2",
-            inputs=[summary if summary.strip() else "no summary was produced by the model"],
-            parameters={"input_type": "passage"}
-        )
+        
+        base_delay = 5
+        max_retries = 10
 
-        record = [{
-            "id": file_id,
-            "values": embeddings[0]["values"],
-            "metadata": {"text": summary}
-        }]
 
-        self.index.upsert(
-            vectors=record,
-            namespace=self.pc_namespace
-        )
+        for attempt in range(max_retries):
+            try:
+                embeddings = self.pc.inference.embed(
+                    model="llama-text-embed-v2",
+                    inputs=[summary if summary.strip() else "no summary was produced by the model"],
+                    parameters={"input_type": "passage"}
+                )
+
+                record = [{
+                    "id": file_id,
+                    "values": embeddings[0]["values"],
+                    "metadata": {"text": summary}
+                }]
+
+                self.index.upsert(
+                    vectors=record,
+                    namespace=self.pc_namespace
+                )
+            except Exception as e:
+                # last attempt on exp backoff
+                if attempt == max_retries - 1:
+                    raise
+
+                delay = base_delay * (2 ** attempt)
+
+                # jitter for rl
+                jitter = delay * 0.2 * (random.random() * 2 - 1)
+                wait_time = delay + jitter
+
+                print(f"Pinecone API overloaded, retrying in {wait_time:.2f} seconds (attempt {attempt+1}/{max_retries})")
+                await asyncio.sleep(wait_time)
