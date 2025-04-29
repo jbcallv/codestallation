@@ -143,8 +143,8 @@ class SummarizeChunks(Action):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.CHUNK_SIZE = 20000
-        self.CHUNK_OVERLAP = 1000
+        self.CHUNK_SIZE = 10000
+        self.CHUNK_OVERLAP = 500
 
     @staticmethod
     def get_code_text(filepath):
@@ -331,7 +331,7 @@ class FileSummarizer(Action):
         return formatted
 
     async def save_summary(self, file_id, summary, pc_index):
-        self.init_pinecone(pc_index)
+        #self.init_pinecone(pc_index)
         
         base_delay = 5
         max_retries = 10
@@ -339,6 +339,8 @@ class FileSummarizer(Action):
 
         for attempt in range(max_retries):
             try:
+                self.init_pinecone(pc_index)
+
                 embeddings = self.pc.inference.embed(
                     model="llama-text-embed-v2",
                     inputs=[summary if summary.strip() else "no summary was produced by the model"],
@@ -355,6 +357,8 @@ class FileSummarizer(Action):
                     vectors=record,
                     namespace=self.pc_namespace
                 )
+
+                return
             except Exception as e:
                 # last attempt on exp backoff
                 if attempt == max_retries - 1:

@@ -144,6 +144,7 @@ class ChunkSummarizer(Role):
             self.rc.memory.add(chunks_msg)
             # maybe don't want this
             self.rc.env.publish_message(chunks_msg)
+
         
         # completed message
         summary_msg = Message(
@@ -166,7 +167,7 @@ class ChunkSummaryCombiner(Role):
         self.set_actions([CombineChunkSummaries])
         self._watch({SummarizeChunks})  
         self.file_summaries = {}
-    
+
     async def _act(self) -> Message:
         logger.info(f"{self._setting}: to do {self.rc.todo}({self.rc.todo.name})")
         todo = self.rc.todo
@@ -214,7 +215,7 @@ class FileLevelSummarizer(Role):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.set_actions([FileSummarizer])
-        self._watch({CombineChunkSummaries})
+        #self._watch({CombineChunkSummaries})
         
         self.pc_index = kwargs.get("pinecone_index", "metagpt")
         self.final_summaries = {}
