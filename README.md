@@ -4,6 +4,8 @@
 
 CodeStellation is a novel multi-agent Large Language Model (LLM) framework designed for automatically generating comprehensive documentation for large-scale source code projects. Unlike existing code summarization approaches that focus primarily on method-level documentation, CodeStellation effectively handles higher-order code components such as classes and files by using collaborative LLM agents to tackle the complexities of larger code structures.
 
+This project is built on our [forked version of MetaGPT](https://github.com/jbcallv/MetaGPT), which has been modified to support local LLM deployment.
+
 ## Key Features
 
 - **Multi-Agent Architecture**: Employs specialized agents that collaborate to generate high-quality code summaries
@@ -27,7 +29,7 @@ CodeStellation uses a sequential pipeline architecture with five specialized age
 ### Prerequisites
 
 - Python 3.11
-- MetaGPT framework
+- MetaGPT framework locally cloned [(our forked version with modifications)](https://github.com/jbcallv/MetaGPT)
 - Local LLM support or API access
 - Pinecone account (for vector database storage)
 
@@ -39,7 +41,7 @@ git clone https://github.com/jbcallv/codestallation.git
 cd codestallation
 
 # Install dependencies
-pip install -r requirements.txt
+pip install -r deps/requirements.txt
 pip install -e <path to metagpt>
 ```
 
