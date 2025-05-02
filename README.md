@@ -1,5 +1,9 @@
 # Codestellation
 
+## Relevant artifacts
+- **MetaGPT** fork: [link](https://github.com/jbcallv/MetaGPT)
+- **Annotated Benchmark** [link](https://docs.google.com/spreadsheets/d/1-W4i4gqte2xnymOzFlpLCcfcrabHlaETNj8ARoT_nAI/edit?usp=sharing)
+
 ## Overview
 
 CodeStellation is a novel multi-agent Large Language Model (LLM) framework designed for automatically generating comprehensive documentation for large-scale source code projects. Unlike existing code summarization approaches that focus primarily on method-level documentation, CodeStellation effectively handles higher-order code components such as classes and files by using collaborative LLM agents to tackle the complexities of larger code structures.
